@@ -1,0 +1,63 @@
+{
+    "pos": {
+        "title": "Point of Sale",
+        "searchPlaceholder": "Search products or scan barcode...",
+        "cart": "Shopping Cart",
+        "total": "Total",
+        "discount": "Discount",
+        "tax": "Tax",
+        "checkout": "Checkout",
+        "clear": "Clear Cart",
+        "emptyCart": "Cart is empty",
+        "quantity": "Qty",
+        "price": "Price",
+        "subtotal": "Subtotal"
+    },
+    "checkout": {
+        "title": "Checkout",
+        "totalAmount": "Total Amount",
+        "cashReceived": "Cash Received",
+        "change": "Change to Return",
+        "confirm": "Confirm Payment & Print",
+        "cancel": "Cancel"
+    },
+    "products": {
+        "title": "Products",
+        "add": "Add Product",
+        "edit": "Edit Product",
+        "name": "Product Name",
+        "category": "Category",
+        "price": "Selling Price",
+        "cost": "Cost Price",
+        "stock": "Stock Quantity",
+        "barcode": "Barcode",
+        "save": "Save Product",
+        "delete": "Delete",
+        "import": "Import",
+        "export": "Export"
+    },
+    "reports": {
+        "title": "Sales Reports",
+        "daily": "Daily Sales",
+        "revenue": "Total Revenue",
+        "profit": "Total Profit",
+        "salesCount": "Sales Count"
+    },
+    "settings": {
+        "title": "Settings",
+        "theme": "Theme",
+        "light": "Light",
+        "dark": "Dark",
+        "language": "Language",
+        "taxRate": "Tax Rate (%)",
+        "storeName": "Store Name",
+        "storeAddress": "Store Address",
+        "save": "Save Settings"
+    },
+    "common": {
+        "success": "Success",
+        "error": "Error",
+        "loading": "Loading...",
+        "noData": "No data found"
+    }
+}
