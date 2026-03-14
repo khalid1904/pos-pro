@@ -139,12 +139,11 @@ export default function ProductModal({ isOpen, onClose, productToEdit }: Product
                     <div className="space-y-1">
                         <label className="text-xs font-bold text-muted-foreground uppercase ml-1">Category</label>
                         <select 
-                            required 
                             value={formData.category_id || ''} 
                             onChange={e => setFormData({ ...formData, category_id: e.target.value ? Number(e.target.value) : null })} 
                             className="w-full p-4 rounded-xl border border-input bg-background focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all font-medium appearance-none"
                         >
-                            <option value="">Select a category</option>
+                            <option value="">No Category (Optional)</option>
                             {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                     </div>

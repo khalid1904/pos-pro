@@ -9,13 +9,13 @@ interface OnboardingProps {
 }
 
 export default function Onboarding({ onCancel }: OnboardingProps) {
-    const { setTheme, setCurrency } = useUIStore();
+    const { setTheme, setCurrency, setMerchantUpiId } = useUIStore();
     const { user, setSelectedStoreId, fetchStores } = useAuthStore();
 
     const [step, setStep] = useState(1);
     
     // Step 1: Store Info
-    const [storeName, setStoreName] = useState('My Local Shop');
+    const [storeName, setStoreName] = useState('');
     const [storeAddress, setStoreAddress] = useState('');
     
     // Step 2: Preferences
@@ -47,6 +47,9 @@ export default function Onboarding({ onCancel }: OnboardingProps) {
             // Update Global Store Preferences (for UI theme/etc)
             setTheme(theme);
             setCurrency(currency);
+            if (upiId) {
+                setMerchantUpiId(upiId);
+            }
             
             // Set the active store id
             setSelectedStoreId(data.id);

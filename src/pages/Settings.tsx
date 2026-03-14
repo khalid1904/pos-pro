@@ -54,8 +54,7 @@ export default function Settings() {
                     name: storeData.name,
                     address: storeData.address,
                     currency: storeData.currency,
-                    tax_rate: storeData.tax_rate,
-                    merchant_upi_id: storeData.merchant_upi_id
+                    tax_rate: storeData.tax_rate
                 })
                 .eq('id', selectedStoreId);
 

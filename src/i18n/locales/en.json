@@ -1,4 +1,13 @@
 {
+    "dashboard": {
+        "title": "Dashboard",
+        "stats": {
+            "revenue": "Total Revenue",
+            "sales": "Total Sales",
+            "products": "Products",
+            "lowStock": "Low Stock Items"
+        }
+    },
     "pos": {
         "title": "Point of Sale",
         "searchPlaceholder": "Search products or scan barcode...",
@@ -38,8 +47,12 @@
     },
     "reports": {
         "title": "Sales Reports",
+        "totalSales": "Total Sales",
+        "totalRevenue": "Total Revenue",
+        "cashVolume": "Cash Volume",
+        "upiVolume": "UPI Volume",
         "daily": "Daily Sales",
-        "revenue": "Total Revenue",
+        "revenue": "Revenue",
         "profit": "Total Profit",
         "salesCount": "Sales Count"
     },
