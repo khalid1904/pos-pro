@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Package, Store, Globe, Smartphone, ArrowRight, Check } from 'lucide-react';
+import { Store, Globe, Smartphone, ArrowRight, Check } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
 import { db } from '../db/db';
 
@@ -55,8 +55,8 @@ export default function Onboarding() {
                 
                 {/* Header */}
                 <div className="bg-primary p-8 text-primary-foreground text-center">
-                    <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
-                        <Package size={32} />
+                    <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-sm shadow-inner overflow-hidden p-1">
+                        <img src="/pwa-192x192.png" alt="POS Pro" className="w-full h-full object-contain drop-shadow-md rounded-xl" />
                     </div>
                     <h1 className="text-3xl font-black mb-2">Welcome to POS Pro</h1>
                     <p className="text-primary-foreground/80 font-medium">Let's set up your store in 3 quick steps.</p>

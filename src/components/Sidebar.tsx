@@ -23,7 +23,7 @@ export default function Sidebar() {
         <aside className="hidden lg:flex w-64 bg-card border-r border-border flex-col flex-shrink-0">
             <div className="p-6 border-b border-border">
                 <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
-                    <Package className="text-primary" />
+                    <img src="/pwa-192x192.png" alt="POS Pro" className="w-8 h-8 rounded-lg shadow-sm" />
                     POS Pro
                 </h1>
             </div>
