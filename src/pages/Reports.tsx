@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useUIStore } from '../store/uiStore';
 import { db } from '../db/db';
-import { BarChart3, TrendingUp, DollarSign, Package } from 'lucide-react';
+import { BarChart3, TrendingUp, DollarSign, Package, Wallet } from 'lucide-react';
 
 export default function Reports() {
     const { t } = useTranslation();
@@ -30,8 +30,9 @@ export default function Reports() {
         const revenue = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
         const profit = revenue * 0.3; // Simplified profit calculation (30% margin)
         const itemsSold = filteredSales.reduce((count, sale) => count + sale.items.reduce((c, i) => c + i.quantity, 0), 0);
+        const avgSale = filteredSales.length > 0 ? revenue / filteredSales.length : 0;
 
-        return { revenue, profit, count: filteredSales.length, itemsSold };
+        return { revenue, profit, count: filteredSales.length, itemsSold, avgSale };
     }, [sales, timeRange]);
 
     const recentSales = useMemo(() => {
@@ -53,38 +54,48 @@ export default function Reports() {
                 </select>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
-                    <div className="p-4 bg-primary/10 rounded-full text-primary"><DollarSign size={24} /></div>
-                    <div>
-                        <div className="text-sm text-muted-foreground">{t('reports.revenue')}</div>
-                        <div className="text-2xl font-bold">{currency}{stats.revenue.toFixed(2)}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-2xl shadow-sm flex items-center gap-4 relative overflow-hidden">
+                    <div className="absolute right-0 top-0 opacity-10 transform translate-x-4 -translate-y-4">
+                        <DollarSign size={80} />
+                    </div>
+                    <div className="p-4 bg-white/20 rounded-full relative z-10"><DollarSign size={24} /></div>
+                    <div className="relative z-10">
+                        <div className="text-sm text-green-50 font-medium mb-1">{t('reports.revenue')}</div>
+                        <div className="text-2xl font-black">{currency}{stats.revenue.toFixed(2)}</div>
                     </div>
                 </div>
-                <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
-                    <div className="p-4 bg-green-500/10 rounded-full text-green-500"><TrendingUp size={24} /></div>
+                <div className="bg-card p-6 rounded-2xl border border-border shadow-sm flex items-center gap-4 group hover:border-primary/30 transition-colors">
+                    <div className="p-4 bg-blue-500/10 rounded-full text-blue-500 group-hover:scale-110 transition-transform"><TrendingUp size={24} /></div>
                     <div>
-                        <div className="text-sm text-muted-foreground">{t('reports.profit')}</div>
+                        <div className="text-sm font-medium text-muted-foreground mb-1">{t('reports.profit')}</div>
                         <div className="text-2xl font-bold">{currency}{stats.profit.toFixed(2)}</div>
                     </div>
                 </div>
-                <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
-                    <div className="p-4 bg-blue-500/10 rounded-full text-blue-500"><BarChart3 size={24} /></div>
+                <div className="bg-card p-6 rounded-2xl border border-border shadow-sm flex items-center gap-4 group hover:border-primary/30 transition-colors">
+                    <div className="p-4 bg-amber-500/10 rounded-full text-amber-500 group-hover:scale-110 transition-transform"><Wallet size={24} /></div>
                     <div>
-                        <div className="text-sm text-muted-foreground">{t('reports.salesCount')}</div>
+                        <div className="text-sm font-medium text-muted-foreground mb-1">Avg Sale Value</div>
+                        <div className="text-2xl font-bold">{currency}{stats.avgSale.toFixed(2)}</div>
+                    </div>
+                </div>
+                <div className="bg-card p-6 rounded-2xl border border-border shadow-sm flex items-center gap-4 group hover:border-primary/30 transition-colors">
+                    <div className="p-4 bg-purple-500/10 rounded-full text-purple-500 group-hover:scale-110 transition-transform"><BarChart3 size={24} /></div>
+                    <div>
+                        <div className="text-sm font-medium text-muted-foreground mb-1">{t('reports.salesCount')}</div>
                         <div className="text-2xl font-bold">{stats.count}</div>
                     </div>
                 </div>
-                <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
-                    <div className="p-4 bg-purple-500/10 rounded-full text-purple-500"><Package size={24} /></div>
+                <div className="bg-card p-6 rounded-2xl border border-border shadow-sm flex items-center gap-4 group hover:border-primary/30 transition-colors">
+                    <div className="p-4 bg-indigo-500/10 rounded-full text-indigo-500 group-hover:scale-110 transition-transform"><Package size={24} /></div>
                     <div>
-                        <div className="text-sm text-muted-foreground">Items Sold</div>
+                        <div className="text-sm font-medium text-muted-foreground mb-1">Items Sold</div>
                         <div className="text-2xl font-bold">{stats.itemsSold}</div>
                     </div>
                 </div>
             </div>
 
-            <div className="flex-1 bg-card rounded-xl shadow-sm border border-border p-0 sm:p-6 overflow-hidden flex flex-col">
+            <div className="flex-1 bg-card rounded-2xl shadow-sm border border-border overflow-hidden flex flex-col">
                 <h2 className="text-xl font-bold m-4 sm:m-0 sm:mb-4">Recent Sales History</h2>
                 <div className="overflow-x-auto flex-1">
                     <table className="w-full text-left border-collapse">

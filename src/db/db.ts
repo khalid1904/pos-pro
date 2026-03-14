@@ -33,7 +33,7 @@ export interface Sale {
     total: number;
     discount: number;
     tax: number;
-    paymentMethod: 'cash';
+    paymentMethod: 'cash' | 'upi';
     timestamp: string;
 }
 
@@ -51,6 +51,7 @@ export interface AppSettings {
     language: string; // 'en' | 'ta'
     storeName: string;
     storeAddress: string;
+    merchantUpiId: string;
 }
 
 // 2. Define the Database Class extending Dexie
@@ -87,7 +88,8 @@ db.on('populate', async () => {
         currency: '₹',
         language: 'en',
         storeName: 'My Local Shop',
-        storeAddress: '123 Main St'
+        storeAddress: '123 Main St',
+        merchantUpiId: ''
     });
 
     await db.categories.bulkAdd([

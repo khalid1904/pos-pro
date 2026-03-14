@@ -7,11 +7,12 @@ import { Download, Upload, Save } from 'lucide-react';
 
 export default function Settings() {
     const { t, i18n } = useTranslation();
-    const { theme, setTheme, currency, setCurrency } = useUIStore();
+    const { theme, setTheme, currency, setCurrency, merchantUpiId, setMerchantUpiId } = useUIStore();
 
     const [storeName, setStoreName] = useState('My Local Shop');
     const [storeAddress, setStoreAddress] = useState('123 Main St');
     const [taxRate, setTaxRate] = useState(0);
+    const [upiId, setUpiId] = useState(merchantUpiId);
 
     useEffect(() => {
         const loadSettings = async () => {
@@ -21,6 +22,12 @@ export default function Settings() {
                 setStoreName(s.storeName);
                 setStoreAddress(s.storeAddress);
                 setTaxRate(s.taxRate);
+                if (s.merchantUpiId !== undefined) {
+                    setUpiId(s.merchantUpiId);
+                    if (s.merchantUpiId !== merchantUpiId) {
+                        setMerchantUpiId(s.merchantUpiId);
+                    }
+                }
                 if (s.currency && s.currency !== currency) {
                     setCurrency(s.currency);
                 }
@@ -42,8 +49,10 @@ export default function Settings() {
                 currency,
                 language: i18n.language,
                 storeName,
-                storeAddress
+                storeAddress,
+                merchantUpiId: upiId
             });
+            setMerchantUpiId(upiId);
             alert(t('common.success'));
         } catch (err) {
             console.error(err);
@@ -117,6 +126,17 @@ export default function Settings() {
                                 <div>
                                     <label className="block text-sm font-medium mb-1">{t('settings.taxRate')}</label>
                                     <input type="number" min="0" step="0.1" value={taxRate} onChange={e => setTaxRate(Number(e.target.value))} className="w-full p-2 rounded-md border border-input bg-background" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Merchant UPI ID</label>
+                                    <input
+                                        type="text"
+                                        placeholder="yourshop@upi"
+                                        value={upiId}
+                                        onChange={e => setUpiId(e.target.value)}
+                                        className="w-full p-2 rounded-md border border-input bg-background"
+                                    />
+                                    <p className="text-xs text-muted-foreground mt-1">Required for accepting UPI payments via QR code</p>
                                 </div>
                             </div>
                         </div>
