@@ -27,9 +27,21 @@ export default function Reports() {
             return true;
         });
 
-        const revenue = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
-        const profit = revenue * 0.3; // Simplified profit calculation (30% margin)
-        const itemsSold = filteredSales.reduce((count, sale) => count + sale.items.reduce((c, i) => c + i.quantity, 0), 0);
+        let revenue = 0;
+        let profit = 0;
+        let itemsSold = 0;
+
+        filteredSales.forEach(sale => {
+            revenue += sale.total;
+            let saleCost = 0;
+            sale.items.forEach(item => {
+                saleCost += (item.cost || 0) * item.quantity;
+                itemsSold += item.quantity;
+            });
+            // Profit = Total Revenue (after discount) - Tax - Total Cost of Goods
+            profit += (sale.total - sale.tax - saleCost);
+        });
+
         const avgSale = filteredSales.length > 0 ? revenue / filteredSales.length : 0;
 
         return { revenue, profit, count: filteredSales.length, itemsSold, avgSale };

@@ -23,6 +23,7 @@ export interface SaleItem {
     productId: number;
     name: string;
     price: number;
+    cost: number;
     quantity: number;
     subtotal: number;
 }
