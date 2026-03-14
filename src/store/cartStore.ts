@@ -1,13 +1,22 @@
 import { create } from 'zustand';
-import type { SaleItem } from '../db/db';
+
+// local type for cart items
+export interface SaleItem {
+    productId: string;
+    name: string;
+    price: number;
+    cost: number;
+    quantity: number;
+    subtotal: number;
+}
 
 interface CartState {
     items: SaleItem[];
     discount: number;
     tax: number;
     addItem: (product: any) => void;
-    removeItem: (productId: number) => void;
-    updateQuantity: (productId: number, quantity: number) => void;
+    removeItem: (productId: string) => void;
+    updateQuantity: (productId: string, quantity: number) => void;
     setDiscount: (discount: number) => void;
     setTax: (tax: number) => void;
     clearCart: () => void;

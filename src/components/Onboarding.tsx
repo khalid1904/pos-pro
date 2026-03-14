@@ -1,12 +1,16 @@
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Store, Globe, Smartphone, ArrowRight, Check } from 'lucide-react';
+import { Store, Globe, Smartphone, ArrowRight, Check, X } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
-import { db } from '../db/db';
+import { useAuthStore } from '../store/authStore';
+import { supabase } from '../lib/supabase';
 
-export default function Onboarding() {
-    const { i18n } = useTranslation();
-    const { setIsOnboarded, setTheme, setCurrency, setMerchantUpiId } = useUIStore();
+interface OnboardingProps {
+    onCancel?: () => void;
+}
+
+export default function Onboarding({ onCancel }: OnboardingProps) {
+    const { setTheme, setCurrency } = useUIStore();
+    const { user, setSelectedStoreId, fetchStores } = useAuthStore();
 
     const [step, setStep] = useState(1);
     
@@ -22,30 +26,34 @@ export default function Onboarding() {
     const [upiId, setUpiId] = useState('');
 
     const handleComplete = async () => {
+        if (!user) return;
+        
         try {
-            // Save to DB
-            await db.settings.clear();
-            await db.settings.add({
-                theme,
-                taxRate: 0,
-                currency,
-                language: i18n.language,
-                storeName,
-                storeAddress,
-                merchantUpiId: upiId
-            });
+            // Save to Supabase
+            const { data, error } = await supabase
+                .from('stores')
+                .insert({
+                    owner_id: user.id,
+                    name: storeName,
+                    address: storeAddress,
+                    currency: currency,
+                    tax_rate: 0 // Default 
+                })
+                .select()
+                .single();
 
-            // Update Global Store
+            if (error) throw error;
+
+            // Update Global Store Preferences (for UI theme/etc)
             setTheme(theme);
             setCurrency(currency);
-            setMerchantUpiId(upiId);
-            setIsOnboarded(true);
             
-            // Reload to ensure all components pick up fresh DB state
-            window.location.reload();
+            // Set the active store id
+            setSelectedStoreId(data.id);
+            await fetchStores();
         } catch (e) {
-            console.error('Failed to save onboarding settings:', e);
-            alert('Failed to save settings. Please try again.');
+            console.error('Failed to create store:', e);
+            alert('Failed to connect to the cloud. Please try again.');
         }
     };
 
@@ -54,12 +62,20 @@ export default function Onboarding() {
             <div className="w-full max-w-lg bg-card rounded-3xl shadow-xl overflow-hidden border border-border">
                 
                 {/* Header */}
-                <div className="bg-primary p-8 text-primary-foreground text-center">
+                <div className="bg-primary p-8 text-primary-foreground text-center relative">
+                    {onCancel && (
+                        <button 
+                            onClick={onCancel}
+                            className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors"
+                        >
+                            <X size={20} />
+                        </button>
+                    )}
                     <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-sm shadow-inner overflow-hidden p-1">
                         <img src="/pwa-192x192.png" alt="POS Pro" className="w-full h-full object-contain drop-shadow-md rounded-xl" />
                     </div>
-                    <h1 className="text-3xl font-black mb-2">Welcome to POS Pro</h1>
-                    <p className="text-primary-foreground/80 font-medium">Let's set up your store in 3 quick steps.</p>
+                    <h1 className="text-3xl font-black mb-2">Create New Store</h1>
+                    <p className="text-primary-foreground/80 font-medium">Launch your next business location in seconds.</p>
                 </div>
 
                 {/* Progress Bar */}

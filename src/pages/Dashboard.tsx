@@ -1,206 +1,169 @@
-import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useLiveQuery } from 'dexie-react-hooks';
+import { useTranslation } from 'react-i18next';
+import { TrendingUp, ShoppingBag, DollarSign, Package, AlertTriangle, Loader2 } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
-import { db } from '../db/db';
-import {
-    IndianRupee, // Note: using IndianRupee instead of generic DollarSign if INR is primary, or we can use generic
-    TrendingUp,
-    Package,
-    ShoppingCart,
-    ArrowRight,
-    Plus,
-    BarChart3
-} from 'lucide-react';
+import { useAuthStore } from '../store/authStore';
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 
 export default function Dashboard() {
+    const { t } = useTranslation();
     const { currency } = useUIStore();
-    const navigate = useNavigate();
+    const { selectedStoreId } = useAuthStore();
+    
+    const [stats, setStats] = useState({
+        revenue: 0,
+        salesCount: 0,
+        productCount: 0,
+        lowStock: 0,
+        recentSales: [] as any[]
+    });
+    const [isLoading, setIsLoading] = useState(true);
 
-    const sales = useLiveQuery(() => db.sales.toArray()) || [];
-    const products = useLiveQuery(() => db.products.toArray()) || [];
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            if (!selectedStoreId) return;
+            setIsLoading(true);
+            try {
+                // Fetch stats from Supabase
+                const [salesRes, productsRes] = await Promise.all([
+                    supabase.from('sales').select('total').eq('store_id', selectedStoreId),
+                    supabase.from('products').select('stock').eq('store_id', selectedStoreId),
+                ]);
 
-    const stats = useMemo(() => {
-        const now = new Date();
-        const todayStr = now.toDateString();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
+                const recentSalesRes = await supabase
+                    .from('sales')
+                    .select('*')
+                    .eq('store_id', selectedStoreId)
+                    .order('created_at', { ascending: false })
+                    .limit(5);
 
-        let todayRevenue = 0;
-        let monthlyRevenue = 0;
-        let totalRevenue = 0;
+                const revenue = salesRes.data?.reduce((sum, s) => sum + s.total, 0) || 0;
+                const salesCount = salesRes.data?.length || 0;
+                const productCount = productsRes.data?.length || 0;
+                const lowStock = productsRes.data?.filter(p => p.stock < 10).length || 0;
 
-        sales.forEach(s => {
-            const d = new Date(s.timestamp);
-            totalRevenue += s.total;
-
-            if (d.toDateString() === todayStr) {
-                todayRevenue += s.total;
+                setStats({
+                    revenue,
+                    salesCount,
+                    productCount,
+                    lowStock,
+                    recentSales: recentSalesRes.data || []
+                });
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setIsLoading(false);
             }
-
-            if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
-                monthlyRevenue += s.total;
-            }
-        });
-
-        return {
-            todayRevenue,
-            monthlyRevenue,
-            totalRevenue,
-            totalSalesCount: sales.length,
-            totalProducts: products.length
         };
-    }, [sales, products]);
 
-    const recentSales = useMemo(() => {
-        return [...sales]
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-            .slice(0, 5);
-    }, [sales]);
+        fetchDashboardData();
+    }, [selectedStoreId]);
+
+    const statCards = [
+        { title: t('dashboard.stats.revenue'), value: `${currency}${stats.revenue.toLocaleString()}`, icon: DollarSign, color: 'text-primary', bg: 'bg-primary/10' },
+        { title: t('dashboard.stats.sales'), value: stats.salesCount.toString(), icon: ShoppingBag, color: 'text-green-600', bg: 'bg-green-100' },
+        { title: t('dashboard.stats.products'), value: stats.productCount.toString(), icon: Package, color: 'text-blue-600', bg: 'bg-blue-100' },
+        { title: t('dashboard.stats.lowStock'), value: stats.lowStock.toString(), icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-100' },
+    ];
+
+    if (isLoading) {
+        return (
+            <div className="h-full flex items-center justify-center p-8">
+                <Loader2 size={48} className="animate-spin text-primary" />
+            </div>
+        );
+    }
 
     return (
-        <div className="p-4 sm:p-6 h-full overflow-y-auto space-y-6">
-            {/* Header */}
-            <div>
-                <h1 className="text-3xl font-black text-gray-900 dark:text-gray-100 mb-1">Overview</h1>
-                <p className="text-muted-foreground font-medium">Welcome back to your store dashboard.</p>
-            </div>
-
-            {/* Top Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Today's Revenue (Primary Accent) */}
-                <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 shadow-md text-white relative overflow-hidden">
-                    <div className="absolute right-0 top-0 opacity-10 transform translate-x-4 -translate-y-4">
-                        <TrendingUp size={120} />
-                    </div>
-                    <div className="relative z-10">
-                        <div className="text-green-50 font-medium mb-1">Today's Revenue</div>
-                        <div className="text-4xl font-black">{currency}{stats.todayRevenue.toFixed(2)}</div>
-                    </div>
+        <div className="p-6 space-y-8 max-w-7xl mx-auto">
+            <div className="flex justify-between items-end">
+                <div>
+                    <h1 className="text-4xl font-black tracking-tight">{t('dashboard.title')}</h1>
+                    <p className="text-muted-foreground font-medium mt-1">Here's what's happening in your shop today.</p>
                 </div>
-
-                {/* Monthly Revenue */}
-                <div className="bg-card rounded-2xl p-6 shadow-sm border border-border flex items-center justify-between">
-                    <div>
-                        <div className="text-sm font-semibold text-muted-foreground mb-1">This Month</div>
-                        <div className="text-2xl font-bold text-foreground">{currency}{stats.monthlyRevenue.toFixed(2)}</div>
-                    </div>
-                    <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                        <BarChart3 size={24} />
-                    </div>
-                </div>
-
-                {/* Total Products */}
-                <div className="bg-card rounded-2xl p-6 shadow-sm border border-border flex items-center justify-between">
-                    <div>
-                        <div className="text-sm font-semibold text-muted-foreground mb-1">Total Products</div>
-                        <div className="text-2xl font-bold text-foreground">{stats.totalProducts}</div>
-                    </div>
-                    <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-purple-600 dark:text-purple-400">
-                        <Package size={24} />
-                    </div>
+                <div className="bg-primary/5 px-4 py-2 rounded-2xl border border-primary/10 text-primary font-black uppercase tracking-widest text-xs">
+                    Cloud Live Sync
                 </div>
             </div>
 
-            {/* Quick Actions & Recent Sales Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                {/* Quick Actions */}
-                <div className="space-y-4">
-                    <h2 className="text-xl font-bold text-foreground">Quick Actions</h2>
-                    
-                    <button 
-                        onClick={() => navigate('/pos')}
-                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground p-4 rounded-2xl shadow-sm flex items-center justify-between group transition-all hover:-translate-y-0.5"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="bg-white/20 p-2 rounded-xl">
-                                <ShoppingCart size={24} />
-                            </div>
-                            <span className="font-bold text-lg">Start New Sale</span>
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {statCards.map((stat, i) => (
+                    <div key={i} className="bg-card p-6 rounded-[2rem] shadow-sm border border-border flex items-center gap-4 hover:shadow-xl hover:shadow-primary/5 transition-all group">
+                        <div className={`p-4 rounded-2xl ${stat.bg} ${stat.color} group-hover:scale-110 transition-transform`}>
+                            <stat.icon size={28} strokeWidth={2.5} />
                         </div>
-                        <ArrowRight size={20} className="opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1" />
-                    </button>
-
-                    <button 
-                        onClick={() => navigate('/products')}
-                        className="w-full bg-card hover:bg-muted border border-border text-foreground p-4 rounded-2xl shadow-sm flex items-center justify-between group transition-all hover:-translate-y-0.5"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="bg-primary/10 text-primary p-2 rounded-xl">
-                                <Plus size={24} />
-                            </div>
-                            <span className="font-bold text-lg">Add New Product</span>
+                        <div>
+                            <p className="text-xs font-black text-muted-foreground uppercase tracking-wider">{stat.title}</p>
+                            <h3 className="text-2xl font-black tracking-tight">{stat.value}</h3>
                         </div>
-                        <ArrowRight size={20} className="text-muted-foreground group-hover:text-primary transition-colors transform group-hover:translate-x-1" />
-                    </button>
-                    
-                    <button 
-                        onClick={() => navigate('/reports')}
-                        className="w-full bg-card hover:bg-muted border border-border text-foreground p-4 rounded-2xl shadow-sm flex items-center justify-between group transition-all hover:-translate-y-0.5"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="bg-blue-500/10 text-blue-500 p-2 rounded-xl">
-                                <BarChart3 size={24} />
-                            </div>
-                            <span className="font-bold text-lg">View Full Reports</span>
-                        </div>
-                        <ArrowRight size={20} className="text-muted-foreground group-hover:text-blue-500 transition-colors transform group-hover:translate-x-1" />
-                    </button>
-                </div>
-
-                {/* Recent Sales List */}
-                <div className="lg:col-span-2 space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-foreground">Recent Transactions</h2>
-                        <button onClick={() => navigate('/reports')} className="text-sm font-bold text-primary hover:underline">
-                            View All
-                        </button>
                     </div>
+                ))}
+            </div>
 
-                    <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
-                        {recentSales.length === 0 ? (
-                            <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center">
-                                <ShoppingCart size={48} className="mb-4 opacity-20" />
-                                <p className="font-medium text-lg">No sales yet today</p>
-                                <p className="text-sm mt-1">Make your first sale to see it here.</p>
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-border">
-                                {recentSales.map(sale => (
-                                    <div key={sale.id} className="p-4 hover:bg-muted/50 transition-colors flex items-center justify-between">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
-                                                <IndianRupee size={18} />
-                                            </div>
-                                            <div>
-                                                <div className="font-bold text-foreground">
-                                                    {sale.items.length} {sale.items.length === 1 ? 'item' : 'items'}
-                                                </div>
-                                                <div className="text-xs text-muted-foreground font-medium">
-                                                    {new Date(sale.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                    {' • '}
-                                                    <span className="uppercase">{sale.paymentMethod}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="font-black text-lg text-foreground">
-                                                {currency}{sale.total.toFixed(2)}
-                                            </div>
-                                            {sale.discount > 0 && (
-                                                <div className="text-xs text-green-600 font-medium">
-                                                    -{currency}{sale.discount.toFixed(2)} discount
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
+            <div className="grid lg:grid-cols-3 gap-8">
+                {/* Recent Sales */}
+                <div className="lg:col-span-2 bg-card rounded-[2.5rem] shadow-sm border border-border flex flex-col overflow-hidden">
+                    <div className="p-6 border-b border-border flex justify-between items-center bg-muted/20">
+                        <h2 className="text-xl font-black flex items-center gap-2">
+                            <TrendingUp className="text-primary" size={24} />
+                            Recent Sales
+                        </h2>
+                        <button className="text-primary font-black text-sm hover:underline">View All</button>
+                    </div>
+                    <div className="p-0 overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead className="bg-muted/50 text-xs font-black text-muted-foreground uppercase tracking-widest">
+                                <tr>
+                                    <th className="p-6">Time</th>
+                                    <th className="p-6">Method</th>
+                                    <th className="p-6 text-right">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {stats.recentSales.map((sale) => (
+                                    <tr key={sale.id} className="hover:bg-muted/30 transition-colors">
+                                        <td className="p-6">
+                                            <div className="font-bold">{new Date(sale.created_at).toLocaleTimeString()}</div>
+                                            <div className="text-xs text-muted-foreground">{new Date(sale.created_at).toLocaleDateString()}</div>
+                                        </td>
+                                        <td className="p-6">
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${sale.payment_method === 'cash' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                {sale.payment_method}
+                                            </span>
+                                        </td>
+                                        <td className="p-6 text-right font-black text-lg text-primary">{currency}{sale.total.toFixed(2)}</td>
+                                    </tr>
                                 ))}
-                            </div>
-                        )}
+                                {stats.recentSales.length === 0 && (
+                                    <tr>
+                                        <td colSpan={3} className="p-12 text-center text-muted-foreground font-bold italic">
+                                            No sales recorded yet.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                
+
+                {/* Performance Goal (Static/Placeholder) */}
+                <div className="bg-primary text-primary-foreground rounded-[2.5rem] p-8 flex flex-col relative overflow-hidden shadow-2xl shadow-primary/30">
+                    <div className="relative z-10 flex-1">
+                        <h2 className="text-2xl font-black mb-4 uppercase tracking-tighter italic">Growth Target</h2>
+                        <div className="text-6xl font-black mb-2">82%</div>
+                        <p className="font-bold text-primary-foreground/70 uppercase tracking-widest text-xs mb-8">Of monthly goal reached</p>
+                        
+                        <div className="space-y-4">
+                            <div className="h-4 bg-white/20 rounded-full overflow-hidden">
+                                <div className="h-full bg-white w-[82%] rounded-full shadow-[0_0_20px_rgba(255,255,255,0.5)]" />
+                            </div>
+                            <p className="text-sm font-medium leading-relaxed">
+                                You're doing great! Your sales are up 12% compared to last week. Keep pushing those categories.
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );

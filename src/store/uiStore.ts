@@ -3,12 +3,14 @@ import { create } from 'zustand';
 interface UIState {
     isSidebarOpen: boolean;
     theme: 'light' | 'dark';
+    language: string;
     currency: string;
     merchantUpiId: string;
     isOnboarded: boolean;
     hasVisited: boolean;
     toggleSidebar: () => void;
     setTheme: (theme: 'light' | 'dark') => void;
+    setLanguage: (lang: string) => void;
     setCurrency: (currency: string) => void;
     setMerchantUpiId: (id: string) => void;
     setIsOnboarded: (status: boolean) => void;
@@ -18,6 +20,7 @@ interface UIState {
 export const useUIStore = create<UIState>((set) => ({
     isSidebarOpen: false,
     theme: (localStorage.getItem('theme') as 'light' | 'dark') || 'light',
+    language: localStorage.getItem('language') || 'en',
     currency: localStorage.getItem('currency') || '₹',
     merchantUpiId: localStorage.getItem('merchantUpiId') || '',
     isOnboarded: localStorage.getItem('isOnboarded') === 'true',
@@ -33,6 +36,11 @@ export const useUIStore = create<UIState>((set) => ({
             document.documentElement.classList.remove('dark');
         }
         set({ theme });
+    },
+
+    setLanguage: (lang) => {
+        localStorage.setItem('language', lang);
+        set({ language: lang });
     },
 
     setCurrency: (currency) => {

@@ -1,23 +1,46 @@
-import { useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { db, type Product } from '../db/db';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { Plus, Edit, Trash2, Download, Upload } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2 } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
+import { useAuthStore } from '../store/authStore';
+import { supabase } from '../lib/supabase';
 import ProductModal from '../components/ProductModal';
-import { exportData, importData } from '../utils/dataHelper';
+import type { DbProduct } from '../types/supabase';
 
 export default function Products() {
     const { t } = useTranslation();
     const { currency } = useUIStore();
-    const products = useLiveQuery(() => db.products.toArray()) || [];
-    const categories = useLiveQuery(() => db.categories.toArray()) || [];
-
+    const { selectedStoreId } = useAuthStore();
+    
+    const [products, setProducts] = useState<DbProduct[]>([]);
+    const [categories, setCategories] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [productToEdit, setProductToEdit] = useState<Product | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [productToEdit, setProductToEdit] = useState<DbProduct | null>(null);
 
-    const handleEdit = (product: Product) => {
+    const fetchProductsData = async () => {
+        if (!selectedStoreId) return;
+        setIsLoading(true);
+        try {
+            const [pRes, cRes] = await Promise.all([
+                supabase.from('products').select('*').eq('store_id', selectedStoreId).order('name'),
+                supabase.from('categories').select('*').eq('store_id', selectedStoreId)
+            ]);
+            
+            if (pRes.data) setProducts(pRes.data);
+            if (cRes.data) setCategories(cRes.data);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchProductsData();
+    }, [selectedStoreId]);
+
+    const handleEdit = (product: DbProduct) => {
         setProductToEdit(product);
         setIsModalOpen(true);
     };
@@ -27,21 +50,14 @@ export default function Products() {
         setIsModalOpen(true);
     };
 
-    const handleDelete = async (id?: number) => {
-        if (id && confirm('Are you sure you want to delete this product?')) {
-            await db.products.delete(id);
-        }
-    };
-
-    const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            try {
-                await importData(e.target.files[0]);
-                alert(t('common.success'));
-            } catch (err) {
-                alert(t('common.error'));
+    const handleDelete = async (id: number) => {
+        if (confirm('Are you sure you want to delete this product?')) {
+            const { error } = await supabase.from('products').delete().eq('id', id);
+            if (!error) {
+                fetchProductsData();
+            } else {
+                alert('Error deleting product');
             }
-            if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
 
@@ -50,59 +66,69 @@ export default function Products() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <h1 className="text-3xl font-bold">{t('products.title')}</h1>
                 <div className="flex gap-2">
-                    <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-4 py-2 rounded-md font-medium border border-border">
-                        <Upload size={18} />
-                        <span className="hidden sm:inline">{t('products.import')}</span>
-                    </button>
-                    <input type="file" accept=".json" ref={fileInputRef} className="hidden" onChange={handleImport} />
-
-                    <button onClick={exportData} className="flex items-center gap-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-4 py-2 rounded-md font-medium border border-border">
-                        <Download size={18} />
-                        <span className="hidden sm:inline">{t('products.export')}</span>
-                    </button>
-
-                    <button onClick={handleAdd} className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md font-medium">
-                        <Plus size={18} />
+                    <button onClick={handleAdd} className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-xl font-bold transition-all shadow-lg shadow-primary/20">
+                        <Plus size={20} />
                         {t('products.add')}
                     </button>
                 </div>
             </div>
 
-            <div className="flex-1 bg-card rounded-lg shadow-sm border border-border p-0 overflow-hidden flex flex-col">
+            <div className="flex-1 bg-card rounded-3xl shadow-sm border border-border p-0 overflow-hidden flex flex-col">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-muted/50 border-b border-border">
-                                <th className="p-4 font-medium">{t('products.name')}</th>
-                                <th className="p-4 font-medium">{t('products.category')}</th>
-                                <th className="p-4 font-medium">{t('products.price')}</th>
-                                <th className="p-4 font-medium">{t('products.stock')}</th>
-                                <th className="p-4 font-medium">{t('products.barcode')}</th>
-                                <th className="p-4 font-medium text-right">Actions</th>
+                                <th className="p-4 font-bold uppercase text-xs text-muted-foreground tracking-wider">{t('products.name')}</th>
+                                <th className="p-4 font-bold uppercase text-xs text-muted-foreground tracking-wider">{t('products.category')}</th>
+                                <th className="p-4 font-bold uppercase text-xs text-muted-foreground tracking-wider">{t('products.price')}</th>
+                                <th className="p-4 font-bold uppercase text-xs text-muted-foreground tracking-wider">{t('products.stock')}</th>
+                                <th className="p-4 font-bold uppercase text-xs text-muted-foreground tracking-wider">{t('products.barcode')}</th>
+                                <th className="p-4 font-bold uppercase text-xs text-muted-foreground tracking-wider text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {products.length === 0 ? (
+                        <tbody className="divide-y divide-border/50">
+                            {isLoading ? (
                                 <tr>
-                                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                                        {t('common.noData')}
+                                    <td colSpan={6} className="p-12 text-center text-muted-foreground">
+                                        <div className="flex flex-col items-center justify-center gap-3">
+                                            <Loader2 size={32} className="animate-spin text-primary" />
+                                            <span className="font-medium">{t('common.loading')}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : products.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className="p-12 text-center text-muted-foreground">
+                                        <div className="flex flex-col items-center justify-center gap-2 opacity-50">
+                                            <Plus size={48} className="mb-2" />
+                                            <p className="text-lg font-bold">{t('common.noData')}</p>
+                                            <p className="text-sm">Start by adding your first product.</p>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : (
                                 products.map((p) => {
-                                    const cat = categories.find(c => c.id === p.categoryId);
+                                    const cat = categories.find(c => c.id === p.category_id);
                                     return (
-                                        <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
-                                            <td className="p-4 font-semibold">{p.name}</td>
-                                            <td className="p-4">{cat?.name || '-'}</td>
-                                            <td className="p-4 font-mono font-bold">{currency}{p.price.toFixed(2)}</td>
-                                            <td className="p-4">{p.stock}</td>
-                                            <td className="p-4 text-sm text-muted-foreground">{p.barcode || '-'}</td>
-                                            <td className="p-4 flex justify-end gap-2">
-                                                <button onClick={() => handleEdit(p)} className="p-2 text-primary hover:bg-primary/10 rounded-md transition-colors">
+                                        <tr key={p.id} className="hover:bg-muted/30 transition-colors group">
+                                            <td className="p-4 font-bold text-foreground">{p.name}</td>
+                                            <td className="p-4">
+                                                <span className="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-xs font-bold">
+                                                    {cat?.name || 'General'}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 font-mono font-black text-primary">{currency}{p.price.toFixed(2)}</td>
+                                            <td className="p-4">
+                                                <span className={`font-bold ${p.stock < 10 ? 'text-destructive' : 'text-foreground'}`}>
+                                                    {p.stock}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-sm font-medium text-muted-foreground">{p.barcode || '-'}</td>
+                                            <td className="p-4 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={() => handleEdit(p)} className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-colors" title="Edit">
                                                     <Edit size={18} />
                                                 </button>
-                                                <button onClick={() => handleDelete(p.id)} className="p-2 text-destructive hover:bg-destructive/10 rounded-md transition-colors">
+                                                <button onClick={() => handleDelete(p.id)} className="p-2 text-destructive hover:bg-destructive/10 rounded-xl transition-colors" title="Delete">
                                                     <Trash2 size={18} />
                                                 </button>
                                             </td>
@@ -115,11 +141,16 @@ export default function Products() {
                 </div>
             </div>
 
-            <ProductModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                productToEdit={productToEdit}
-            />
+            {isModalOpen && (
+                <ProductModal
+                    isOpen={isModalOpen}
+                    onClose={() => {
+                        setIsModalOpen(false);
+                        fetchProductsData();
+                    }}
+                    productToEdit={productToEdit}
+                />
+            )}
         </div>
     );
 }

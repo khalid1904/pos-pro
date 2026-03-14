@@ -9,14 +9,15 @@ import Dashboard from './pages/Dashboard';
 import Onboarding from './components/Onboarding';
 import Landing from './pages/Landing';
 import Auth from './pages/Auth';
+import StoreSelector from './pages/StoreSelector';
 import { useUIStore } from './store/uiStore';
 import { useAuthStore } from './store/authStore';
 import { supabase } from './lib/supabase';
 import { Loader2 } from 'lucide-react';
 
 function App() {
-  const { isOnboarded, hasVisited } = useUIStore();
-  const { session, setSession, isLoading } = useAuthStore();
+  const { hasVisited } = useUIStore();
+  const { session, setSession, stores, selectedStoreId, isLoading } = useAuthStore();
 
   useEffect(() => {
     // Check initial session
@@ -48,8 +49,14 @@ function App() {
     return <Auth />;
   }
 
-  if (!isOnboarded) {
+  // If authenticated but no stores exist, force onboarding (Create Store)
+  if (stores.length === 0) {
     return <Onboarding />;
+  }
+
+  // If authenticated and stores exist but none is selected (and not onboarding)
+  if (!selectedStoreId) {
+    return <StoreSelector />;
   }
 
   return (
