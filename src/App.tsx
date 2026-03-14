@@ -6,10 +6,15 @@ import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Dashboard from './pages/Dashboard';
 import Onboarding from './components/Onboarding';
+import Landing from './pages/Landing';
 import { useUIStore } from './store/uiStore';
 
 function App() {
-  const { isOnboarded } = useUIStore();
+  const { isOnboarded, hasVisited } = useUIStore();
+
+  if (!hasVisited) {
+    return <Landing />;
+  }
 
   if (!isOnboarded) {
     return <Onboarding />;
